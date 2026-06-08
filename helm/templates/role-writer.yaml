@@ -16,6 +16,7 @@ rules:
 - apiGroups:
   - s3vectors.services.k8s.aws
   resources:
+  - vectorbuckets
   verbs:
   - create
   - delete
@@ -27,6 +28,7 @@ rules:
 - apiGroups:
   - s3vectors.services.k8s.aws
   resources:
+  - vectorbuckets
   verbs:
   - get
   - patch

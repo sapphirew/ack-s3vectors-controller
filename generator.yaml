@@ -1,4 +1,74 @@
 ignore:
   resource_names:
       - Index
-      - VectorBucket
+  field_paths:
+    # Get/DeleteVectorBucket reject specifying both vectorBucketName and
+    # vectorBucketArn. ACK would populate the ARN from status metadata, so drop
+    # the ARN input member and let the read/delete key off the (renamed) name.
+    - GetVectorBucketInput.VectorBucketArn
+    - DeleteVectorBucketInput.VectorBucketArn
+
+operations:
+  GetVectorBucket:
+    # GetVectorBucketOutput wraps the resource in a `vectorBucket` member.
+    # Flatten it so the resource fields populate directly.
+    output_wrapper_field_path: VectorBucket
+
+resources:
+  VectorBucket:
+    fields:
+      # Primary key. SDK create/get/delete field is `vectorBucketName`; rename
+      # it to `Name` (ACK convention) via the resource-level renames block
+      # below. Immutable: there is no rename/update API for the bucket name.
+      Name:
+        is_primary_key: true
+        is_immutable: true
+      # AWS-assigned creation timestamp from GetVectorBucket. The ARN is not
+      # modeled separately — ACK auto-populates Status.ACKResourceMetadata.ARN
+      # from CreateVectorBucketOutput.vectorBucketArn.
+      CreationTime:
+        is_read_only: true
+        from:
+          operation: GetVectorBucket
+          path: VectorBucket.CreationTime
+      # Encryption is set only at create (no Put/Update encryption API). S3
+      # Vectors applies a server-side default (SSE-S3/AES256) when the user
+      # omits it, so late-initialize the observed value back into the spec to
+      # keep drift detection working without spurious deltas. (Not marked
+      # is_immutable: late_initialize already settles the field, and combining
+      # it with immutability is unsupported.)
+      EncryptionConfiguration:
+        late_initialize:
+          skip_incomplete_check: {}
+      # Cross-resource reference to a KMS Key for SSE-KMS encryption.
+      EncryptionConfiguration.KMSKeyARN:
+        references:
+          resource: Key
+          service_name: kms
+          path: Status.ACKResourceMetadata.ARN
+    renames:
+      operations:
+        CreateVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+        GetVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+        DeleteVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+    exceptions:
+      errors:
+        404:
+          code: NotFoundException
+      terminal_codes:
+        - ValidationException
+    hooks:
+      # GetVectorBucket does not return tags; fetch them via
+      # ListTagsForResource so the Spec.Tags delta is accurate.
+      sdk_read_one_post_set_output:
+        template_path: hooks/vector_bucket/sdk_read_one_post_set_output.go.tpl
+    # No UpdateVectorBucket API; the only mutable surface is Tags, handled by a
+    # custom update method.
+    update_operation:
+      custom_method_name: customUpdateVectorBucket
