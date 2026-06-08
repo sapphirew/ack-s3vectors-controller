@@ -27,3 +27,51 @@ var (
 	_ = &aws.JSONValue{}
 	_ = ackv1alpha1.AWSAccountID("")
 )
+
+// The encryption configuration for a vector bucket or index. By default, if
+// you don't specify, all new vectors in Amazon S3 vector buckets use server-side
+// encryption with Amazon S3 managed keys (SSE-S3), specifically AES256. You
+// can optionally override bucket level encryption settings, and set a specific
+// encryption configuration for a vector index at the time of index creation.
+type EncryptionConfiguration struct {
+	KMSKeyARN *string `json:"kmsKeyARN,omitempty"`
+	SSEType   *string `json:"sseType,omitempty"`
+}
+
+// The attributes of a vector index.
+type Index struct {
+	CreationTime *metav1.Time `json:"creationTime,omitempty"`
+	// The encryption configuration for a vector bucket or index. By default, if
+	// you don't specify, all new vectors in Amazon S3 vector buckets use server-side
+	// encryption with Amazon S3 managed keys (SSE-S3), specifically AES256. You
+	// can optionally override bucket level encryption settings, and set a specific
+	// encryption configuration for a vector index at the time of index creation.
+	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
+	VectorBucketName        *string                  `json:"vectorBucketName,omitempty"`
+}
+
+// Summary information about a vector index.
+type IndexSummary struct {
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	VectorBucketName *string      `json:"vectorBucketName,omitempty"`
+}
+
+// Summary information about a vector bucket.
+type VectorBucketSummary struct {
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	VectorBucketARN  *string      `json:"vectorBucketARN,omitempty"`
+	VectorBucketName *string      `json:"vectorBucketName,omitempty"`
+}
+
+// The attributes of a vector bucket.
+type VectorBucket_SDK struct {
+	CreationTime *metav1.Time `json:"creationTime,omitempty"`
+	// The encryption configuration for a vector bucket or index. By default, if
+	// you don't specify, all new vectors in Amazon S3 vector buckets use server-side
+	// encryption with Amazon S3 managed keys (SSE-S3), specifically AES256. You
+	// can optionally override bucket level encryption settings, and set a specific
+	// encryption configuration for a vector index at the time of index creation.
+	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
+	VectorBucketARN         *string                  `json:"vectorBucketARN,omitempty"`
+	VectorBucketName        *string                  `json:"vectorBucketName,omitempty"`
+}

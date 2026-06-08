@@ -1,0 +1,9 @@
+apiVersion: s3vectors.services.k8s.aws/v1alpha1
+kind: VectorBucket
+metadata:
+  name: $VECTOR_BUCKET_NAME
+spec:
+  name: $VECTOR_BUCKET_NAME
+  tags:
+    environment: test
+    team: ack

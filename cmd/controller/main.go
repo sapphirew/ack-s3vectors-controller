@@ -39,6 +39,8 @@ import (
 	svctypes "github.com/aws-controllers-k8s/s3vectors-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/s3vectors-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/s3vectors-controller/pkg/resource/vector_bucket"
+
 	"github.com/aws-controllers-k8s/s3vectors-controller/pkg/version"
 )
 

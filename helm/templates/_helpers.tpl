@@ -70,6 +70,26 @@ rules:
   - list
   - watch
 - apiGroups:
+  - s3vectors.services.k8s.aws
+  resources:
+  - vectorbuckets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - s3vectors.services.k8s.aws
+  resources:
+  - vectorbuckets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - services.k8s.aws
   resources:
   - fieldexports

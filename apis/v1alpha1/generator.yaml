@@ -1,4 +1,71 @@
 ignore:
   resource_names:
       - Index
-      - VectorBucket
+  field_paths: []
+
+operations:
+  GetVectorBucket:
+    # GetVectorBucketOutput wraps the resource in a `vectorBucket` member.
+    # Flatten it so the resource fields populate directly.
+    output_wrapper_field_path: VectorBucket
+
+resources:
+  VectorBucket:
+    fields:
+      # Primary key. SDK create/get/delete field is `vectorBucketName`; rename
+      # it to `Name` (ACK convention) via the resource-level renames block
+      # below. Immutable: there is no rename/update API for the bucket name.
+      Name:
+        is_primary_key: true
+        is_immutable: true
+      # AWS-assigned creation timestamp from GetVectorBucket. The ARN is not
+      # modeled separately — ACK auto-populates Status.ACKResourceMetadata.ARN
+      # from CreateVectorBucketOutput.vectorBucketArn.
+      CreationTime:
+        is_read_only: true
+        from:
+          operation: GetVectorBucket
+          path: VectorBucket.CreationTime
+      # Encryption is set only at create; there is no Put/Update encryption
+      # API, so the whole configuration is immutable.
+      EncryptionConfiguration:
+        is_immutable: true
+    renames:
+      operations:
+        CreateVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+        GetVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+        DeleteVectorBucket:
+          input_fields:
+            VectorBucketName: Name
+    exceptions:
+      errors:
+        404:
+          code: NotFoundException
+      terminal_codes:
+        - ValidationException
+    hooks:
+      # GetVectorBucket rejects setting both vectorBucketName and
+      # vectorBucketArn; clear the ARN so the read keys off the name only.
+      sdk_read_one_post_build_request:
+        template_path: hooks/vector_bucket/sdk_read_one_post_build_request.go.tpl
+      # GetVectorBucket does not return tags; fetch them via
+      # ListTagsForResource so the Spec.Tags delta is accurate.
+      sdk_read_one_post_set_output:
+        template_path: hooks/vector_bucket/sdk_read_one_post_set_output.go.tpl
+      # DeleteVectorBucket likewise rejects setting both identifiers; clear the
+      # ARN so the delete keys off the name only.
+      sdk_delete_post_build_request:
+        template_path: hooks/vector_bucket/sdk_delete_post_build_request.go.tpl
+      # S3 Vectors always applies a default encryption configuration; adopt the
+      # observed default when the user did not specify one to avoid spurious
+      # deltas on this immutable, server-managed value.
+      delta_pre_compare:
+        code: customPreCompare(a, b)
+    # No UpdateVectorBucket API; the only mutable surface is Tags, handled by a
+    # custom update method.
+    update_operation:
+      custom_method_name: customUpdateVectorBucket
