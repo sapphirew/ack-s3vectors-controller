@@ -28,7 +28,6 @@ type VectorBucketSpec struct {
 	// The encryption configuration for the vector bucket. By default, if you don't
 	// specify, all new vectors in Amazon S3 vector buckets use server-side encryption
 	// with Amazon S3 managed keys (SSE-S3), specifically AES256.
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
 	// The name of the vector bucket to create.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"

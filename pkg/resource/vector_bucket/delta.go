@@ -40,7 +40,6 @@ func newResourceDelta(
 		delta.Add("", a, b)
 		return delta
 	}
-	customPreCompare(a, b)
 
 	if ackcompare.HasNilDifference(a.ko.Spec.EncryptionConfiguration, b.ko.Spec.EncryptionConfiguration) {
 		delta.Add("Spec.EncryptionConfiguration", a.ko.Spec.EncryptionConfiguration, b.ko.Spec.EncryptionConfiguration)

@@ -50,12 +50,23 @@ spec:
                 properties:
                   kmsKeyARN:
                     type: string
+                  kmsKeyRef:
+                    description: Reference field for KMSKeyARN
+                    properties:
+                      from:
+                        description: |-
+                          AWSResourceReference provides all the values necessary to reference another
+                          k8s resource for finding the identifier(Id/ARN/Name)
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        type: object
+                    type: object
                   sseType:
                     type: string
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
               name:
                 description: The name of the vector bucket to create.
                 type: string

@@ -1,13 +1,26 @@
 ignore:
-  resource_names:
-      - Index
-  field_paths: []
+  resource_names: []
+  field_paths:
+    # CreateIndex accepts vectorBucketName OR vectorBucketArn as alternative
+    # parents. We model only the VectorBucketName reference, so drop the
+    # redundant vectorBucketArn arm from the Index spec.
+    - CreateIndexInput.VectorBucketArn
+    # Get/Delete reject specifying both the name and the ARN identifiers. ACK
+    # would populate the ARN from status metadata, so drop the ARN input member
+    # and let these operations key off the name(s).
+    - GetVectorBucketInput.VectorBucketArn
+    - DeleteVectorBucketInput.VectorBucketArn
+    - GetIndexInput.IndexArn
+    - DeleteIndexInput.IndexArn
 
 operations:
   GetVectorBucket:
     # GetVectorBucketOutput wraps the resource in a `vectorBucket` member.
     # Flatten it so the resource fields populate directly.
     output_wrapper_field_path: VectorBucket
+  GetIndex:
+    # GetIndexOutput wraps the resource in an `index` member.
+    output_wrapper_field_path: Index
 
 resources:
   VectorBucket:
@@ -26,10 +39,19 @@ resources:
         from:
           operation: GetVectorBucket
           path: VectorBucket.CreationTime
-      # Encryption is set only at create; there is no Put/Update encryption
-      # API, so the whole configuration is immutable.
+      # Encryption is set only at create (no Put/Update encryption API). S3
+      # Vectors applies a server-side default (SSE-S3/AES256) when the user
+      # omits it, so late-initialize the observed value back into the spec to
+      # keep drift detection working without spurious deltas.
       EncryptionConfiguration:
-        is_immutable: true
+        late_initialize:
+          skip_incomplete_check: {}
+      # Cross-resource reference to a KMS Key for SSE-KMS encryption.
+      EncryptionConfiguration.KMSKeyARN:
+        references:
+          resource: Key
+          service_name: kms
+          path: Status.ACKResourceMetadata.ARN
     renames:
       operations:
         CreateVectorBucket:
@@ -45,17 +67,70 @@ resources:
       errors:
         404:
           code: NotFoundException
+      terminal_codes:
+        - ValidationException
     hooks:
       # GetVectorBucket does not return tags; fetch them via
       # ListTagsForResource so the Spec.Tags delta is accurate.
       sdk_read_one_post_set_output:
         template_path: hooks/vector_bucket/sdk_read_one_post_set_output.go.tpl
-      # S3 Vectors always applies a default encryption configuration; adopt the
-      # observed default when the user did not specify one to avoid spurious
-      # deltas on this immutable, server-managed value.
-      delta_pre_compare:
-        code: customPreCompare(a, b)
     # No UpdateVectorBucket API; the only mutable surface is Tags, handled by a
     # custom update method.
     update_operation:
       custom_method_name: customUpdateVectorBucket
+
+  Index:
+    fields:
+      # Primary key (child resource scoped to a VectorBucket). Immutable.
+      IndexName:
+        is_primary_key: true
+        is_immutable: true
+      # Parent VectorBucket, referenced by name (same-service reference — do
+      # NOT set service_name). Immutable.
+      VectorBucketName:
+        is_immutable: true
+        references:
+          resource: VectorBucket
+          path: Spec.Name
+      # All index configuration is set at create and cannot be changed.
+      DataType:
+        is_immutable: true
+      Dimension:
+        is_immutable: true
+      DistanceMetric:
+        is_immutable: true
+      MetadataConfiguration:
+        is_immutable: true
+      # Encryption is set only at create (no update API). S3 Vectors applies a
+      # server-side default when the user omits it, so late-initialize the
+      # observed value back into the spec to preserve drift detection.
+      EncryptionConfiguration:
+        late_initialize:
+          skip_incomplete_check: {}
+      # Cross-resource reference to a KMS Key for SSE-KMS encryption.
+      EncryptionConfiguration.KMSKeyARN:
+        references:
+          resource: Key
+          service_name: kms
+          path: Status.ACKResourceMetadata.ARN
+      # AWS-assigned creation timestamp from GetIndex (path is relative to the
+      # `index` wrapper flattened above).
+      CreationTime:
+        is_read_only: true
+        from:
+          operation: GetIndex
+          path: Index.CreationTime
+    exceptions:
+      errors:
+        404:
+          code: NotFoundException
+      terminal_codes:
+        - ValidationException
+    hooks:
+      # GetIndex does not return tags; fetch them via ListTagsForResource so
+      # the Spec.Tags delta is accurate.
+      sdk_read_one_post_set_output:
+        template_path: hooks/index/sdk_read_one_post_set_output.go.tpl
+    # No UpdateIndex API; the only mutable surface is Tags.
+    update_operation:
+      custom_method_name: customUpdateIndex

@@ -16,6 +16,7 @@ import time
 
 import pytest
 
+from acktest import tags
 from acktest.k8s import condition
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
@@ -100,9 +101,8 @@ class TestVectorBucket:
         assert aws_bucket["vectorBucket"]["vectorBucketName"] == vector_bucket_name
 
         # Tags supplied at creation should be applied in AWS.
-        tags = s3vectors_client.list_tags_for_resource(resourceArn=arn)["tags"]
-        assert tags.get("environment") == "test"
-        assert tags.get("team") == "ack"
+        resource_tags = s3vectors_client.list_tags_for_resource(resourceArn=arn)["tags"]
+        tags.assert_present({"environment": "test", "team": "ack"}, resource_tags)
 
         # Update: change tags only (the bucket name and encryption configuration
         # are immutable — there is no UpdateVectorBucket or Put-encryption API).
@@ -129,12 +129,12 @@ class TestVectorBucket:
             wait_periods=10,
         )
 
-        # The controller also manages its own `services.k8s.aws/*` tags, so we
-        # assert only on the user-defined tags rather than exact-matching.
-        tags = s3vectors_client.list_tags_for_resource(resourceArn=arn)["tags"]
-        assert tags.get("environment") == "prod"
-        assert tags.get("owner") == "platform"
-        assert "team" not in tags
+        # After the update only the user-defined tags below should remain
+        # (ignoring the controller-managed `services.k8s.aws/*` tags).
+        resource_tags = s3vectors_client.list_tags_for_resource(resourceArn=arn)["tags"]
+        tags.assert_equal_without_ack_tags(
+            {"environment": "prod", "owner": "platform"}, resource_tags
+        )
 
         # Delete the resource and confirm it is removed from AWS.
         _, deleted = k8s.delete_custom_resource(ref)

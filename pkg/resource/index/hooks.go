@@ -11,7 +11,7 @@
 // express or implied. See the License for the specific language governing
 // permissions and limitations under the License.
 
-package vector_bucket
+package index
 
 import (
 	"context"
@@ -25,18 +25,18 @@ import (
 
 // arnFromKO returns the resource ARN string pointer from the resource's status
 // metadata, or nil if it has not yet been populated.
-func arnFromKO(ko *svcapitypes.VectorBucket) *string {
+func arnFromKO(ko *svcapitypes.Index) *string {
 	if ko.Status.ACKResourceMetadata == nil || ko.Status.ACKResourceMetadata.ARN == nil {
 		return nil
 	}
 	return (*string)(ko.Status.ACKResourceMetadata.ARN)
 }
 
-// setResourceTags populates the VectorBucket spec tags from the dedicated
-// ListTagsForResource API, since GetVectorBucket does not return them.
+// setResourceTags populates the Index spec tags from the dedicated
+// ListTagsForResource API, since GetIndex does not return them.
 func (rm *resourceManager) setResourceTags(
 	ctx context.Context,
-	ko *svcapitypes.VectorBucket,
+	ko *svcapitypes.Index,
 ) (err error) {
 	rlog := ackrtlog.FromContext(ctx)
 	exit := rlog.Trace("rm.setResourceTags")
@@ -64,18 +64,18 @@ func (rm *resourceManager) setResourceTags(
 	return nil
 }
 
-// customUpdateVectorBucket reconciles the only mutable surface of a
-// VectorBucket: its tags. There is no UpdateVectorBucket API; the bucket name
-// and encryption configuration are immutable (encryption is set at create and
-// has no Put/Update API).
-func (rm *resourceManager) customUpdateVectorBucket(
+// customUpdateIndex reconciles the only mutable surface of an Index: its tags.
+// There is no UpdateIndex API; the index name, parent bucket, and all
+// configuration fields (data type, dimension, distance metric, metadata, and
+// encryption) are immutable.
+func (rm *resourceManager) customUpdateIndex(
 	ctx context.Context,
 	desired *resource,
 	latest *resource,
 	delta *ackcompare.Delta,
 ) (updated *resource, err error) {
 	rlog := ackrtlog.FromContext(ctx)
-	exit := rlog.Trace("rm.customUpdateVectorBucket")
+	exit := rlog.Trace("rm.customUpdateIndex")
 	defer func() { exit(err) }()
 
 	ko := desired.ko.DeepCopy()

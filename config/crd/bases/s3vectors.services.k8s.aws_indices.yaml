@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: vectorbuckets.s3vectors.services.k8s.aws
+  name: indices.s3vectors.services.k8s.aws
 spec:
   group: s3vectors.services.k8s.aws
   names:
-    kind: VectorBucket
-    listKind: VectorBucketList
-    plural: vectorbuckets
-    singular: vectorbucket
+    kind: Index
+    listKind: IndexList
+    plural: indices
+    singular: index
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VectorBucket is the Schema for the VectorBuckets API
+        description: Index is the Schema for the Indices API
         properties:
           apiVersion:
             description: |-
@@ -38,15 +38,36 @@ spec:
             type: object
           spec:
             description: |-
-              VectorBucketSpec defines the desired state of VectorBucket.
+              IndexSpec defines the desired state of Index.
 
-              The attributes of a vector bucket.
+              The attributes of a vector index.
             properties:
+              dataType:
+                description: The data type of the vectors to be inserted into the
+                  vector index.
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
+              dimension:
+                description: The dimensions of the vectors to be inserted into the
+                  vector index.
+                format: int64
+                type: integer
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
+              distanceMetric:
+                description: The distance metric to be used for similarity search.
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
               encryptionConfiguration:
                 description: |-
-                  The encryption configuration for the vector bucket. By default, if you don't
-                  specify, all new vectors in Amazon S3 vector buckets use server-side encryption
-                  with Amazon S3 managed keys (SSE-S3), specifically AES256.
+                  The encryption configuration for a vector index. By default, if you don't
+                  specify, all new vectors in the vector index will use the encryption configuration
+                  of the vector bucket.
                 properties:
                   kmsKeyARN:
                     type: string
@@ -67,9 +88,20 @@ spec:
                   sseType:
                     type: string
                 type: object
-              name:
-                description: The name of the vector bucket to create.
+              indexName:
+                description: The name of the vector index to create.
                 type: string
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
+              metadataConfiguration:
+                description: The metadata configuration for the vector index.
+                properties:
+                  nonFilterableMetadataKeys:
+                    items:
+                      type: string
+                    type: array
+                type: object
                 x-kubernetes-validations:
                 - message: Value is immutable once set
                   rule: self == oldSelf
@@ -78,19 +110,46 @@ spec:
                   type: string
                 description: |-
                   An array of user-defined tags that you would like to apply to the vector
-                  bucket that you are creating. A tag is a key-value pair that you apply to
-                  your resources. Tags can help you organize and control access to resources.
-                  For more information, see Tagging for cost allocation or attribute-based
+                  index that you are creating. A tag is a key-value pair that you apply to
+                  your resources. Tags can help you organize, track costs, and control access
+                  to resources. For more information, see Tagging for cost allocation or attribute-based
                   access control (ABAC) (https://docs.aws.amazon.com/AmazonS3/latest/userguide/tagging.html).
 
-                  You must have the s3vectors:TagResource permission in addition to s3vectors:CreateVectorBucket
-                  permission to create a vector bucket with tags.
+                  You must have the s3vectors:TagResource permission in addition to s3vectors:CreateIndex
+                  permission to create a vector index with tags.
+                type: object
+              vectorBucketName:
+                description: The name of the vector bucket to create the vector index
+                  in.
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable once set
+                  rule: self == oldSelf
+              vectorBucketRef:
+                description: "AWSResourceReferenceWrapper provides a wrapper around
+                  *AWSResourceReference\ntype to provide more user friendly syntax
+                  for references using 'from' field\nEx:\nAPIIDRef:\n\n\tfrom:\n\t
+                  \ name: my-api"
+                properties:
+                  from:
+                    description: |-
+                      AWSResourceReference provides all the values necessary to reference another
+                      k8s resource for finding the identifier(Id/ARN/Name)
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
                 type: object
             required:
-            - name
+            - dataType
+            - dimension
+            - distanceMetric
+            - indexName
             type: object
           status:
-            description: VectorBucketStatus defines the observed state of VectorBucket
+            description: IndexStatus defines the observed state of Index
             properties:
               ackResourceMetadata:
                 description: |-
@@ -161,7 +220,7 @@ spec:
                   type: object
                 type: array
               creationTime:
-                description: Date and time when the vector bucket was created.
+                description: Date and time when the vector index was created.
                 format: date-time
                 type: string
             type: object

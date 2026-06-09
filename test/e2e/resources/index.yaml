@@ -1,0 +1,19 @@
+apiVersion: s3vectors.services.k8s.aws/v1alpha1
+kind: Index
+metadata:
+  name: $INDEX_NAME
+spec:
+  indexName: $INDEX_NAME
+  vectorBucketRef:
+    from:
+      name: $VECTOR_BUCKET_NAME
+  dataType: float32
+  dimension: 128
+  distanceMetric: cosine
+  metadataConfiguration:
+    nonFilterableMetadataKeys:
+      - source
+      - timestamp
+  tags:
+    environment: test
+    team: ack
