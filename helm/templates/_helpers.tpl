@@ -72,6 +72,7 @@ rules:
 - apiGroups:
   - s3vectors.services.k8s.aws
   resources:
+  - indices
   - vectorbuckets
   verbs:
   - create
@@ -84,6 +85,7 @@ rules:
 - apiGroups:
   - s3vectors.services.k8s.aws
   resources:
+  - indices/status
   - vectorbuckets/status
   verbs:
   - get
